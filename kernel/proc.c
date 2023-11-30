@@ -442,15 +442,17 @@ wait(uint64 addr)
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
 void
-scheduler(void)
+scheduler(void) 
 {
   struct proc *p;
+  struct proc *p2;
   struct cpu *c = mycpu();
   
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
+    struct proc *mp;
 
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
@@ -458,9 +460,25 @@ scheduler(void)
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
-        p->state = RUNNING;
+        mp = p;
+
+        for(p2 = proc; p2 < &proc[NPROC]; p2++){
+          if(p2->state !=RUNNABLE)
+          continue;
+          if (mp->priority < p2 ->priority ){ //mayor prioridad es menor a p2, cambiar prioridad
+            mp = p2;
+          }
+        }
+
+        p = mp;
         c->proc = p;
+        //swtch(p);
+
+
+        p->state = RUNNING;
         swtch(&c->context, &p->context);
+
+        //swtch(p);
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.
@@ -680,4 +698,18 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+int set_priority(int pid, int priority) {
+  struct proc *p;  
+
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if(p->pid == pid) {
+      p->priority = priority;
+      
+      return 0;
+    }
+  }
+  return -1;
 }
