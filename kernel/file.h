@@ -1,3 +1,11 @@
+#define T_DIR  1   // Directorio
+#define T_FILE 2   // Archivo
+#define T_DEV  3   // Dispositivo
+
+#define READ  1
+#define WRITE 2
+#define RW    3
+
 struct file {
   enum { FD_NONE, FD_PIPE, FD_INODE, FD_DEVICE } type;
   int ref; // reference count
@@ -27,6 +35,7 @@ struct inode {
   short nlink;
   uint size;
   uint addrs[NDIRECT+1];
+  int permissions;
 };
 
 // map major device number to device functions.

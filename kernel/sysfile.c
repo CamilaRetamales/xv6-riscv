@@ -310,6 +310,20 @@ sys_open(void)
   struct inode *ip;
   int n;
 
+  if (argstr(0, path, sizeof(path)) < 0) {
+    return -1; // Error al obtener el nombre del archivo
+  }
+
+  // Obtener el modo de apertura
+  if (argint(1, &omode) < 0) {
+    return -1; // Error al obtener el modo de apertura
+  }
+
+  // Si se está creando el archivo, obtener los permisos
+  if (omode & O_CREATE && argint(2, &ip->permissions) < 0) {
+    return -1; // Error al obtener los permisos
+  }
+
   argint(1, &omode);
   if((n = argstr(0, path, MAXPATH)) < 0)
     return -1;
@@ -333,6 +347,13 @@ sys_open(void)
       end_op();
       return -1;
     }
+  }
+
+  // Verificar permisos
+  if ((omode == O_RDONLY && !(ip->permissions & READ)) ||
+      (omode == O_WRONLY && !(ip->permissions & WRITE)) ||
+      (omode == O_RDWR && !(ip->permissions & RW))) {
+    return -1; // Permiso denegado
   }
 
   if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){
